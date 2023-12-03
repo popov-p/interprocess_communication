@@ -12,5 +12,4 @@ then
 	make
 fi
 
-
 rm -rf ../build
