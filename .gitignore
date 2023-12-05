@@ -1,2 +1,4 @@
-./client_executable
-./host_executable
+.host_mmap
+.host_shm
+.host_pipe
+/build

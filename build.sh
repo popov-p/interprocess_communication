@@ -12,4 +12,4 @@ then
 	make
 fi
 
-rm -rf ../build
+#rm -rf ../build
