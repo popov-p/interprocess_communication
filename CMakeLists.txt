@@ -4,6 +4,7 @@ project(interprocess_communication)
 
 set(COMMON_SOURCES 
     host/host.cpp
+    players/players.cpp
 )
 
 set(CONNECTION_TYPES
