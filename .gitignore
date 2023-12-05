@@ -1,4 +1,4 @@
-.host_mmap
-.host_shm
-.host_pipe
+host_mmap
+host_shm
+host_pipe
 /build

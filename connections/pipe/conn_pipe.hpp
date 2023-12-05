@@ -9,7 +9,7 @@ enum PipeEnd {
 
 class Pipe {
 public:
-    Pipe(){};
+    Pipe() {};
     Pipe(bool is_parent);
     bool read(void *buf, size_t count);
     bool write(void *buf, size_t count);
