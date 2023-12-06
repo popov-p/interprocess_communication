@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <cstdlib>
+#include <ctime> 
 #ifndef PLAYERS_H
 #define PLAYERS_H
 enum Status {
@@ -15,11 +17,11 @@ private:
     Goat() = default;
     bool status_ = false;
     uint8_t buffer_; // buffer for receiving hidden or dead status
+public:
     static Goat& get_instance() {
         static Goat instance;
         return instance;
     }
-public:
     bool get_status() {
         return status_;
     }
@@ -27,7 +29,14 @@ public:
         status_ = s;
     }
     int throw_number() {
-        return 0;
+        if (get_status() == Status::hidden) {
+            std::srand(static_cast<unsigned int>(std::time(0)));
+            return std::rand() % 100 + 1;
+        }
+        else /*dead*/{ 
+            std::srand(static_cast<unsigned int>(std::time(0)));
+            return std::rand() % 50 + 1;
+        }
     }
     ~Goat() = default;
 };
@@ -39,13 +48,15 @@ class Wolf {
     Wolf& operator=(Wolf&&) = delete;
 private:
     Wolf() = default;
+public:
     static Wolf& get_instance() {
         static Wolf instance;
         return instance;
     }
-
-public:
-    void throw_number()  {}
+    int throw_number()  {
+        std::srand(static_cast<unsigned int>(std::time(0)));
+        return std::rand() % 100 + 1;
+    }
     int read_num_from_console() {
         return 0;
     }

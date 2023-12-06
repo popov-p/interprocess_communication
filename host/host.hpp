@@ -24,16 +24,19 @@ private:
                     int current_wolf_num = wolf.throw_number();
                     int current_goat_num;
                     int dead_times = 0;
-                    g_w_connection_.read(&current_goat_num, sizeof(int));
+                    g_w_connection_.value().read(&current_goat_num, sizeof(int));
                     if ((dead_times == 0) && (abs(current_wolf_num - current_goat_num)) <= 70) {
-                        w_g_connection_.write(Status::hidden, sizeof(bool));
+                        bool status = Status::hidden;
+                        w_g_connection_.write(&status, sizeof(bool));
                     }
                     else if ((dead_times == 1) && (abs(current_wolf_num - current_goat_num) <= 20)) {
-                        w_g_connection_.write(Status::hidden, sizeof(bool)); //reincarnation
+                        bool status = Status::hidden;
+                        w_g_connection_.write(&status, sizeof(bool)); //reincarnation
                         dead_times--;
                     }
                     else {
-                        w_g_connection_.write(Status::dead, sizeof(bool));
+                        bool status = Status::dead;
+                        w_g_connection_.write(&status, sizeof(bool));
                         dead_times++;
                         if(dead_times == 2) {
                             //stop game, send sigkill
@@ -44,7 +47,8 @@ private:
             case 0: // child 
                 while(true) {
                     Goat& goat = Goat::get_instance();
-                    g_w_connection_.write(goat.throw_number(), sizeof(int));
+                    int current_goat_num = goat.throw_number();
+                    g_w_connection_.value().write(&current_goat_num, sizeof(int));
                 }
             
         }
