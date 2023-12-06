@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.15.0)
 
 project(interprocess_communication)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 set(COMMON_SOURCES 
     host/host.cpp
     players/players.cpp

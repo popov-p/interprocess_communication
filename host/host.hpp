@@ -1,4 +1,5 @@
 #include <optional>
+#include <memory>
 #include "../connections/mmap/conn_mmap.hpp"
 #include "../connections/shm/conn_shm.hpp"
 #include "../connections/pipe/conn_pipe.hpp"
@@ -8,16 +9,44 @@
 
 template <typename Connection>
 class Host {
-protected:
-    Host() = default;
-private:    
     Host(const Host&) = delete;
     Host(Host&&) = delete;
     Host& operator=(const Host&) = delete;
     Host& operator=(Host&&) = delete;
-    void manage_game() {
-        while(true) {
-            //game logic here
+private:
+    Host() = default;    
+    void manage_game(const pid_t& pid) {
+        connect();
+        switch (pid) {
+            default:
+                while(true) {
+                    Wolf& wolf = Wolf::get_instance();
+                    int current_wolf_num = wolf.throw_number();
+                    int current_goat_num;
+                    int dead_times = 0;
+                    g_w_connection_.read(&current_goat_num, sizeof(int));
+                    if ((dead_times == 0) && (abs(current_wolf_num - current_goat_num)) <= 70) {
+                        w_g_connection_.write(Status::hidden, sizeof(bool));
+                    }
+                    else if ((dead_times == 1) && (abs(current_wolf_num - current_goat_num) <= 20)) {
+                        w_g_connection_.write(Status::hidden, sizeof(bool)); //reincarnation
+                        dead_times--;
+                    }
+                    else {
+                        w_g_connection_.write(Status::dead, sizeof(bool));
+                        dead_times++;
+                        if(dead_times == 2) {
+                            //stop game, send sigkill
+                        }
+                    }
+
+                }
+            case 0: // child 
+                while(true) {
+                    Goat& goat = Goat::get_instance();
+                    g_w_connection_.write(goat.throw_number(), sizeof(int));
+                }
+            
         }
     };
     void connect() {
@@ -34,19 +63,16 @@ private:
     }
     Connection w_g_connection_;
     std::optional<Connection> g_w_connection_; //for pipe
+    int round_counter_;
 public:
     void run(const std::string& executable_name) {
-        pid_t goat_pid = fork();
+        const pid_t & goat_pid = fork();
 //TODO: signal handling    
         if (goat_pid < 0) {
             exit(EXIT_FAILURE);
         }
-        else if (goat_pid) /*parent*/{
-            connect();
-            Wolf& w = Player<Wolf>::get_instance(); 
-            //manage game process
-        }
         else {
+            manage_game(goat_pid);
         }
     };
     static Host& get_instance() {
