@@ -1,5 +1,5 @@
 #include <optional>
-#include <memory>
+#include <thread>
 #include "../connections/mmap/conn_mmap.hpp"
 #include "../connections/shm/conn_shm.hpp"
 #include "../connections/pipe/conn_pipe.hpp"
@@ -24,7 +24,7 @@ private:
                     int current_wolf_num = wolf.throw_number();
                     int current_goat_num;
                     int dead_times = 0;
-                    //g_w_connection_.value().read(&current_goat_num, sizeof(int));
+                    g_w_connection_.value().read(&current_goat_num, sizeof(int));
                     if ((dead_times == 0) && (abs(current_wolf_num - current_goat_num)) <= 70) {
                         bool status = Status::hidden;
                         //w_g_connection_.write(&status, sizeof(bool));
@@ -49,6 +49,7 @@ private:
                     Goat& goat = Goat::get_instance();
                     int current_goat_num = goat.throw_number();
                     g_w_connection_.value().write(&current_goat_num, sizeof(int));
+                    std::this_thread::sleep_for(std::chrono::seconds(5));
                 }
             
         }
