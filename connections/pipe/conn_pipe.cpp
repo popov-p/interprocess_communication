@@ -32,11 +32,7 @@ bool Pipe::read(void *buf, size_t count) {
 bool Pipe::write(void *buf, size_t count) {
     sem_wait(&semaphore_);
 
-    if (is_parent_process_) {
-        close(pipe_descriptors_[READ_END]);
-    } else {
-        close(pipe_descriptors_[READ_END]);
-    }
+    close(pipe_descriptors_[READ_END]);
 
     ssize_t bytes_written = ::write(pipe_descriptors_[WRITE_END], buf, count);
 
