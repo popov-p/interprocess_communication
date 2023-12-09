@@ -1,10 +1,12 @@
 #include <optional>
 #include <thread>
 #include <memory>
+#include <csignal>
 #include "../connections/mmap/conn_mmap.hpp"
 #include "../connections/shm/conn_shm.hpp"
 #include "../connections/pipe/conn_pipe.hpp"
 #include "../players/players.hpp"
+
 #ifndef HOST_H
 #define HOST_H
 //TODO: signal handling
@@ -48,11 +50,11 @@ private:
                     int current_goat_num;
 
                     g_w_connection_.value()->read(&current_goat_num, sizeof(int));
-                    if ((dead_times_ == 0) && (abs(current_wolf_num - current_goat_num)<= 70)) {
+                    if ((dead_times_ == 0) && (abs(current_wolf_num - current_goat_num)<= 50)) {
                         int status = Status::hidden;
                         w_g_connection_->write(&status, sizeof(int));
                     }
-                    else if ((dead_times_ == 1) && (abs(current_wolf_num - current_goat_num) <= 20)) {
+                    else if ((dead_times_ == 1) && (abs(current_wolf_num - current_goat_num) <= 30)) {
                         int status = Status::hidden;
                         w_g_connection_->write(&status, sizeof(int)); //reincarnation
                         dead_times_--;
@@ -81,6 +83,7 @@ private:
                 }
         }
     };
+    
     void connect() {
         if constexpr (std::is_same_v<Connection, Mmap>) {
         //call mmap constructor here
@@ -97,6 +100,13 @@ private:
     std::optional<std::unique_ptr<Connection>> g_w_connection_; //for pipe
     int round_counter_ = 0;
     int dead_times_ = 0;
+    //signals
+    void h_sigterm_(int sig) {
+        std::cout << "SIGTERM RECEIVED" << std::endl;
+	    exit(EXIT_SUCCESS);
+    }
+
+
 public:
     void run(const std::string& executable_name) {
         connect();
