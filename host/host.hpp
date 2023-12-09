@@ -14,63 +14,92 @@ class Host {
     Host& operator=(const Host&) = delete;
     Host& operator=(Host&&) = delete;
 private:
-    Host() = default;    
+    Host() = default;
+    void print_round_log(const int& current_wolf_num, const int& current_goat_num) {
+        std::cout << "Current round: " << round_counter_ << std::endl;
+        std::cout << "Wolf threw: " << current_wolf_num << std::endl;
+        std::cout << "Goat threw: " << current_goat_num << std::endl;
+        if(dead_times_ == 0) {
+            std::cout << "Number of alive goats: " << 1 << std::endl;
+        }
+        else {
+            std::cout << "Number of alive goats: " << 0 << std::endl;
+        }
+        if(dead_times_ == 2) {
+            std::cout << "--- GAME FINISHED ---" <<std::endl;
+        }
+        
+    }
+    void spawn_goat() {
+        int status = Status::hidden;
+        w_g_connection_.write(&status, sizeof(int));
+    }    
     void manage_game(const pid_t& pid) {
-        connect();
         switch (pid) {
             default:
                 while(true) {
+                    round_counter_++;
+                    if(round_counter_ == 1) {
+                        spawn_goat();
+                    }
                     Wolf& wolf = Wolf::get_instance();
                     int current_wolf_num = wolf.throw_number();
                     int current_goat_num;
-                    int dead_times = 0;
+
                     g_w_connection_.value().read(&current_goat_num, sizeof(int));
-                    if ((dead_times == 0) && (abs(current_wolf_num - current_goat_num)) <= 70) {
-                        bool status = Status::hidden;
-                        //w_g_connection_.write(&status, sizeof(bool));
+                    if ((dead_times_ == 0) && (abs(current_wolf_num - current_goat_num)) <= 70) {
+                        int status = Status::hidden;
+                        w_g_connection_.write(&status, sizeof(int));
                     }
-                    else if ((dead_times == 1) && (abs(current_wolf_num - current_goat_num) <= 20)) {
-                        bool status = Status::hidden;
-                        //w_g_connection_.write(&status, sizeof(bool)); //reincarnation
-                        dead_times--;
+                    else if ((dead_times_ == 1) && (abs(current_wolf_num - current_goat_num) <= 20)) {
+                        int status = Status::hidden;
+                        w_g_connection_.write(&status, sizeof(int)); //reincarnation
+                        dead_times_--;
                     }
                     else {
-                        bool status = Status::dead;
-                        //w_g_connection_.write(&status, sizeof(bool));
-                        dead_times++;
-                        if(dead_times == 2) {
-                            //stop game, send sigkill
+                        int status = Status::dead;
+                        w_g_connection_.write(&status, sizeof(int));
+                        dead_times_++;
+                        if(dead_times_ == 2) {
+                            print_round_log(current_wolf_num, current_goat_num);
+                            exit(EXIT_SUCCESS);
                         }
                     }
-
+                    print_round_log(current_wolf_num, current_goat_num);
+                    std::this_thread::sleep_for(std::chrono::seconds(3));
                 }
             case 0: // child 
                 while(true) {
-                    Goat& goat = Goat::get_instance();
-                    int current_goat_num = goat.throw_number();
-                    g_w_connection_.value().write(&current_goat_num, sizeof(int));
-                    std::this_thread::sleep_for(std::chrono::seconds(5));
+                        int status;
+                        w_g_connection_.read(&status, sizeof(int));
+                        Goat& goat = Goat::get_instance();
+                        goat.set_status(status);
+                        int current_goat_num = goat.throw_number();
+                        g_w_connection_.value().write(&current_goat_num, sizeof(int));
+                        std::this_thread::sleep_for(std::chrono::seconds(3));
+                    //}
                 }
-            
         }
     };
     void connect() {
         if constexpr (std::is_same_v<Connection, Mmap>) {
-            //call mmap constructor here
+        //call mmap constructor here
         }
         else if constexpr (std::is_same_v<Connection, Pipe>) {
             w_g_connection_ = Pipe(true);
             g_w_connection_ = Pipe(false);
         }
         else {
-            //call shm consructor here
+        //call shm consructor here
         }
     }
     Connection w_g_connection_;
     std::optional<Connection> g_w_connection_; //for pipe
-    int round_counter_;
+    int round_counter_ = 0;
+    int dead_times_ = 0;
 public:
     void run(const std::string& executable_name) {
+        connect();
         const pid_t & goat_pid = fork();
 //TODO: signal handling    
         if (goat_pid < 0) {

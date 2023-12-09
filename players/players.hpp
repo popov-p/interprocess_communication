@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <cstdlib>
+#include <unistd.h>
 #include <ctime> 
 #ifndef PLAYERS_H
 #define PLAYERS_H
@@ -25,7 +26,7 @@ public:
     bool get_status() {
         return status_;
     }
-    void set_status(bool s) {
+    void set_status(int s) {
         status_ = s;
     }
     int throw_number() {
@@ -54,7 +55,7 @@ public:
         return instance;
     }
     int throw_number()  {
-        std::srand(static_cast<unsigned int>(std::time(0)));
+        std::srand(static_cast<unsigned int>(std::time(0)) + getpid());
         return std::rand() % 100 + 1;
     }
     int read_num_from_console() {

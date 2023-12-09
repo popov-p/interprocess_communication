@@ -1,7 +1,7 @@
 #include "conn_pipe.hpp"
-#include <unistd.h>
 #include <iostream>
 #include <cstring>
+#include <unistd.h>
 //TODO: error processing add here
 Pipe::Pipe(bool is_parent) : is_parent_process_(is_parent) {
     if (pipe(pipe_descriptors_) == -1) {
@@ -15,7 +15,7 @@ Pipe::Pipe(bool is_parent) : is_parent_process_(is_parent) {
 bool Pipe::read(void *buf, size_t count) {
     sem_wait(&semaphore_);
 
-    ssize_t bytes_read = ::read(pipe_descriptors_[READ_END], buf, count);
+    ssize_t bytes_read = ::read(pipe_descriptors_[PipeEnd::READ_END], buf, count);
     if (bytes_read == -1) {
         std::cerr << "Read error: " << strerror(errno) << std::endl;
     }
@@ -27,11 +27,11 @@ bool Pipe::read(void *buf, size_t count) {
 
 bool Pipe::write(void *buf, size_t count) {
     sem_wait(&semaphore_);
-    ssize_t bytes_written = ::write(pipe_descriptors_[PipeEnd::WRITE_END], &buf, count);
+    ssize_t bytes_written = ::write(pipe_descriptors_[PipeEnd::WRITE_END], reinterpret_cast<int*>(buf), count);
     if (bytes_written == -1) {
         std::cerr << "Write error: " << strerror(errno) << std::endl;
     }
-    //sem_post(&semaphore_);
+    sem_post(&semaphore_);
 
     return bytes_written != -1;
 };
