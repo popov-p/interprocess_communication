@@ -16,14 +16,13 @@ class Goat {
     Goat& operator=(Goat&&) = delete;
 private:
     Goat() = default;
-    bool status_ = false;
-    uint8_t buffer_; // buffer for receiving hidden or dead status
+    int status_ = false;
 public:
     static Goat& get_instance() {
         static Goat instance;
         return instance;
     }
-    bool get_status() {
+    int get_status() {
         return status_;
     }
     void set_status(int s) {
