@@ -2,7 +2,9 @@
 #include <sys/syslog.h>
 #ifndef CONN_H
 #define CONN_H
-
+enum ConnStatus {
+    INACCESSIBLE = -999
+};
 enum class OperationType {
     Read,
     Write 

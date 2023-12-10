@@ -1,4 +1,3 @@
-#include <optional>
 #include <thread>
 #include <memory>
 #include <csignal>
@@ -10,7 +9,7 @@
 #ifndef HOST_H
 #define HOST_H
 //TODO: signal handling
-template <typename Connection>
+template <typename Connection, template <typename> class PtrType>
 class Host {
     Host(const Host&) = delete;
     Host(Host&&) = delete;
@@ -58,7 +57,7 @@ private:
                     }
                     int current_goat_num;
 
-                    g_w_connection_.value()->read(&current_goat_num, sizeof(int));
+                    g_w_connection_->read(&current_goat_num, sizeof(int));
                     if ((dead_times_ == 0) && (abs(current_wolf_num - current_goat_num)<= 50)) {
                         int status = Status::hidden;
                         w_g_connection_->write(&status, sizeof(int));
@@ -74,6 +73,7 @@ private:
                         dead_times_++;
                         if(dead_times_ == 2) {
                             print_round_log(current_wolf_num, current_goat_num);
+                            block_conniection();
                             //syslog(LOG_INFO, "game finished");
                             //closelog();
                             exit(EXIT_SUCCESS);
@@ -84,41 +84,51 @@ private:
                 }
             case 0: // child 
                 while(true) {
-                        int status;
-                        w_g_connection_->read(&status, sizeof(int));
-                        Goat& goat = Goat::get_instance();
-                        goat.set_status(status);
-                        int current_goat_num = goat.throw_number();
-                        g_w_connection_.value()->write(&current_goat_num, sizeof(int));
-                        std::this_thread::sleep_for(std::chrono::seconds(SLEEP_BETWEEN_ROUNDS));
+                    int status;
+                    w_g_connection_->read(&status, sizeof(int));
+                    Goat& goat = Goat::get_instance();
+                    goat.set_status(status);
+                    int current_goat_num = goat.throw_number();
+                    g_w_connection_->write(&current_goat_num, sizeof(int));
+                    std::this_thread::sleep_for(std::chrono::seconds(SLEEP_BETWEEN_ROUNDS));
                 }
         }
     };
-    
     void connect() {
         if constexpr (std::is_same_v<Connection, Mmap>) {
-        //call mmap constructor here
+            w_g_connection_ = std::make_shared<Mmap>(sizeof(int));
+            g_w_connection_ = w_g_connection_;
         }
         else if constexpr (std::is_same_v<Connection, Pipe>) {
             w_g_connection_ = std::make_unique<Pipe>();
             g_w_connection_ = std::make_unique<Pipe>();
         }
         else {
-        //call shm consructor here
+            //call shm consructor here
         }
     }
-    std::unique_ptr<Connection> w_g_connection_;
-    std::optional<std::unique_ptr<Connection>> g_w_connection_; //for pipe
+    void disconnect() {
+        w_g_connection_.reset();
+        w_g_connection_.reset();
+        std::cout << "disconnected" <<std::endl;
+    }
+    PtrType<Connection> w_g_connection_;
+    PtrType<Connection> g_w_connection_; //for pipe
     int round_counter_ = 0;
     int dead_times_ = 0;
     bool keyboard_input_ = false;
     //signals
-    void h_sigterm_(int sig) {
+    static void h_sigterm_(int sig) {
         std::cout << "SIGTERM RECEIVED" << std::endl;
-	    exit(EXIT_SUCCESS);
+        Host::get_instance().block_conniection();
+	    exit(EXIT_FAILURE);
     }
-
-
+    void block_conniection() {
+        int st = ConnStatus::INACCESSIBLE;
+        w_g_connection_->write(&st, sizeof(int));
+        g_w_connection_->write(&st, sizeof(int));
+        std::cout << "inaccessible status set" << std::endl;
+    }
 public:
     void set_keyboard_input_flag(bool flag) {
         keyboard_input_ = flag;
@@ -130,11 +140,12 @@ public:
             exit(EXIT_FAILURE);
         }
         else {
+            std::signal(SIGTERM, h_sigterm_);
             manage_game(goat_pid);
         }
     };
     static Host& get_instance() {
-        static Host<Connection> instance;
+        static Host<Connection, PtrType> instance;
         return instance;
     }
     ~Host() = default;

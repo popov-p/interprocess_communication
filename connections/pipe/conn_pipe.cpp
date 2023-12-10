@@ -37,6 +37,7 @@ bool Pipe::write(void *buf, size_t count) {
 };
 
 Pipe::~Pipe() {
+    std::cerr<< "destructor pipe called" << std::endl;
     sem_.~TimedSemaphore();
     close(pipe_descriptors_[READ_END]);
     close(pipe_descriptors_[WRITE_END]);

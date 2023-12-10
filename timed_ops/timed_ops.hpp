@@ -8,7 +8,7 @@
 #define T_SEM_H
 
 const int TIMEOUT_SECONDS = 5;
-const int SLEEP_BETWEEN_ROUNDS = 9;
+const int SLEEP_BETWEEN_ROUNDS = 6;
 class TimedSemaphore {
 public:
 TimedSemaphore(int init_value = 1);
