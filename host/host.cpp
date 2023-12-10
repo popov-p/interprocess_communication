@@ -20,19 +20,19 @@ auto main(int argc, char** argv) -> int {
         h.set_keyboard_input_flag(input == "y" ? true : false);
         h.run(argv[0]);
     }
-    // else if (argv[0] =="host_shm") {
-    //     auto& h = Host<Shm>::get_instance();
-    //     h.set_keyboard_input_flag(input == "y" ? true : false);
-    //     h.run(argv[0]);
-    // }
     else if (filename == "host_mmap") {
         auto& h = Host<Mmap, std::shared_ptr>::get_instance();
         h.set_keyboard_input_flag(input == "y" ? true : false);
         h.run(argv[0]);
     }
-    // else {
-    //     std::cout << "Wrong executable name";
-    // }
+    else if (filename == "host_shm") {
+        auto& h = Host<Shm, std::shared_ptr>::get_instance();
+        h.set_keyboard_input_flag(input == "y" ? true : false);
+        h.run(argv[0]);
+    }
+    else {
+        std::cout << "Wrong executable name";
+    }
     
     return 0;
 }

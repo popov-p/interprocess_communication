@@ -15,7 +15,8 @@ bool Mmap::read(void *buf, size_t count) {
     if (count != mem_size_) {
         std::cerr << "Error: Reading more data than available in shared memory\n";
         sem_.post();
-        exit(EXIT_FAILURE);
+        return false;
+        //exit(EXIT_FAILURE);
     }
     if (*shared_data_ != ConnStatus::INACCESSIBLE && buf != nullptr) {
         std::memcpy(buf, shared_data_, count);
@@ -24,7 +25,8 @@ bool Mmap::read(void *buf, size_t count) {
     } else {
         std::cerr << "Error(read): Invalid pointers for memcpy\n";
         sem_.post();
-        exit(EXIT_FAILURE);
+        return false;
+        //exit(EXIT_FAILURE);
     }
 }
 
@@ -34,7 +36,8 @@ bool Mmap::write(void *buf, size_t count) {
     if (count != mem_size_) {
         std::cerr << "Error: Writing more data than available in shared memory\n";
         sem_.post();
-        exit(EXIT_FAILURE);
+        return false;
+        //exit(EXIT_FAILURE);
     }
 
     if (*shared_data_ != ConnStatus::INACCESSIBLE && buf != nullptr) {
@@ -44,7 +47,8 @@ bool Mmap::write(void *buf, size_t count) {
     } else {
         std::cerr << "Error(write): Invalid pointers for memcpy\n";
         sem_.post();
-        exit(EXIT_FAILURE);
+        return false;
+        //exit(EXIT_FAILURE);
     }
 }
 

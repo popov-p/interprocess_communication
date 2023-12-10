@@ -56,20 +56,33 @@ private:
                         current_wolf_num = wolf.throw_number();
                     }
                     int current_goat_num;
-
-                    g_w_connection_->read(&current_goat_num, sizeof(int));
+                    /*unwrap*/
+                    if (!g_w_connection_->read(&current_goat_num, sizeof(int))){
+                        //closelog();
+                        exit(EXIT_FAILURE);
+                    }
+                    //g_w_connection_->read(&current_goat_num, sizeof(int));
                     if ((dead_times_ == 0) && (abs(current_wolf_num - current_goat_num)<= 50)) {
                         int status = Status::hidden;
-                        w_g_connection_->write(&status, sizeof(int));
+                        if(!w_g_connection_->write(&status, sizeof(int))) {
+                            //closelog();
+                            exit(EXIT_FAILURE);
+                        }
                     }
                     else if ((dead_times_ == 1) && (abs(current_wolf_num - current_goat_num) <= 30)) {
                         int status = Status::hidden;
-                        w_g_connection_->write(&status, sizeof(int)); //reincarnation
+                        if(!w_g_connection_->write(&status, sizeof(int))){
+                            //closelog();
+                            exit(EXIT_FAILURE);
+                        } //reincarnation
                         dead_times_--;
                     }
                     else {
                         int status = Status::dead;
-                        w_g_connection_->write(&status, sizeof(int));
+                        if(!w_g_connection_->write(&status, sizeof(int))){
+                            //closelog();
+                            exit(EXIT_FAILURE);
+                        }
                         dead_times_++;
                         if(dead_times_ == 2) {
                             print_round_log(current_wolf_num, current_goat_num);
@@ -85,11 +98,18 @@ private:
             case 0: // child 
                 while(true) {
                     int status;
-                    w_g_connection_->read(&status, sizeof(int));
+                    if(!w_g_connection_->read(&status, sizeof(int))) {
+                        //closelog();
+                        exit(EXIT_FAILURE);
+                    }
                     Goat& goat = Goat::get_instance();
                     goat.set_status(status);
                     int current_goat_num = goat.throw_number();
-                    g_w_connection_->write(&current_goat_num, sizeof(int));
+                    if(!g_w_connection_->write(&current_goat_num, sizeof(int))) {
+                        //closelog();
+                        exit(EXIT_FAILURE);
+                    }
+                    
                     std::this_thread::sleep_for(std::chrono::seconds(SLEEP_BETWEEN_ROUNDS));
                 }
         }
@@ -107,13 +127,9 @@ private:
             //call shm consructor here
         }
     }
-    void disconnect() {
-        w_g_connection_.reset();
-        w_g_connection_.reset();
-        std::cout << "disconnected" <<std::endl;
-    }
+    
     PtrType<Connection> w_g_connection_;
-    PtrType<Connection> g_w_connection_; //for pipe
+    PtrType<Connection> g_w_connection_; //bidirectiobal pipe
     int round_counter_ = 0;
     int dead_times_ = 0;
     bool keyboard_input_ = false;
