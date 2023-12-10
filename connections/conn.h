@@ -1,12 +1,11 @@
 #include <cstddef>
-
+#include <sys/syslog.h>
 #ifndef CONN_H
 #define CONN_H
 
 enum class OperationType {
     Read,
-    Write  
-
+    Write 
 };
 
 class Conn {

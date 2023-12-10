@@ -1,7 +1,8 @@
-#include <stdint.h>
 #include <cstdlib>
 #include <unistd.h>
-#include <ctime> 
+#include <ctime>
+#include <poll.h> 
+#include <cstring>
 #ifndef PLAYERS_H
 #define PLAYERS_H
 enum Status {
@@ -22,22 +23,9 @@ public:
         static Goat instance;
         return instance;
     }
-    int get_status() {
-        return status_;
-    }
-    void set_status(int s) {
-        status_ = s;
-    }
-    int throw_number() {
-        if (get_status() == Status::hidden) {
-            std::srand(static_cast<unsigned int>(std::time(0)));
-            return std::rand() % 100 + 1;
-        }
-        else /*dead*/{ 
-            std::srand(static_cast<unsigned int>(std::time(0)));
-            return std::rand() % 50 + 1;
-        }
-    }
+    int get_status();
+    void set_status(int s);
+    int throw_number();
     ~Goat() = default;
 };
 
@@ -53,12 +41,7 @@ public:
         static Wolf instance;
         return instance;
     }
-    int throw_number()  {
-        std::srand(static_cast<unsigned int>(std::time(0)) + getpid());
-        return std::rand() % 100 + 1;
-    }
-    int read_num_from_console() {
-        return 0;
-    }
+    int throw_number();
+    int read_num_from_console();
 };
 #endif

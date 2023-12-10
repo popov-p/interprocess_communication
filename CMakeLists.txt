@@ -7,7 +7,7 @@ set(CMAKE_BUILD_TYPE Debug)
 set(COMMON_SOURCES 
     host/host.cpp
     players/players.cpp
-    timed_semaphore/timed_ops.cpp
+    timed_ops/timed_ops.cpp
 )
 
 set(CONNECTION_TYPES

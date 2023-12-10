@@ -17,7 +17,9 @@ class Host {
     Host& operator=(const Host&) = delete;
     Host& operator=(Host&&) = delete;
 private:
-    Host() = default;
+    Host() {
+        //openlog("interprocess_communication", LOG_PID, LOG_USER);
+    };
     void print_round_log(const int& current_wolf_num, const int& current_goat_num) {
         std::cout << "Current round: " << round_counter_ << std::endl;
         std::cout << "Wolf threw: " << current_wolf_num << std::endl;
@@ -36,6 +38,7 @@ private:
     void spawn_goat() {
         int status = Status::hidden;
         w_g_connection_->write(&status, sizeof(int));
+        //syslog(LOG_INFO, "initial goat spawned");
     }    
     void manage_game(const pid_t& pid) {
         switch (pid) {
@@ -46,7 +49,13 @@ private:
                         spawn_goat();
                     }
                     Wolf& wolf = Wolf::get_instance();
-                    int current_wolf_num = wolf.throw_number();
+                    int current_wolf_num;
+                    if(keyboard_input_) {
+                        current_wolf_num = wolf.read_num_from_console();
+                    }
+                    else {
+                        current_wolf_num = wolf.throw_number();
+                    }
                     int current_goat_num;
 
                     g_w_connection_.value()->read(&current_goat_num, sizeof(int));
@@ -65,11 +74,13 @@ private:
                         dead_times_++;
                         if(dead_times_ == 2) {
                             print_round_log(current_wolf_num, current_goat_num);
+                            //syslog(LOG_INFO, "game finished");
+                            //closelog();
                             exit(EXIT_SUCCESS);
                         }
                     }
                     print_round_log(current_wolf_num, current_goat_num);
-                    std::this_thread::sleep_for(std::chrono::seconds(5));
+                    std::this_thread::sleep_for(std::chrono::seconds(SLEEP_BETWEEN_ROUNDS));
                 }
             case 0: // child 
                 while(true) {
@@ -79,7 +90,7 @@ private:
                         goat.set_status(status);
                         int current_goat_num = goat.throw_number();
                         g_w_connection_.value()->write(&current_goat_num, sizeof(int));
-                        std::this_thread::sleep_for(std::chrono::seconds(5));
+                        std::this_thread::sleep_for(std::chrono::seconds(SLEEP_BETWEEN_ROUNDS));
                 }
         }
     };
@@ -100,6 +111,7 @@ private:
     std::optional<std::unique_ptr<Connection>> g_w_connection_; //for pipe
     int round_counter_ = 0;
     int dead_times_ = 0;
+    bool keyboard_input_ = false;
     //signals
     void h_sigterm_(int sig) {
         std::cout << "SIGTERM RECEIVED" << std::endl;
@@ -108,6 +120,9 @@ private:
 
 
 public:
+    void set_keyboard_input_flag(bool flag) {
+        keyboard_input_ = flag;
+    }
     void run(const std::string& executable_name) {
         connect();
         const pid_t & goat_pid = fork();    

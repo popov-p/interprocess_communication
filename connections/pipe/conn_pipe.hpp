@@ -1,5 +1,5 @@
 #include "../conn.h"
-#include "../../timed_semaphore/timed_ops.hpp"
+#include "../../timed_ops/timed_ops.hpp"
 #ifndef CONN_PIPE_H
 #define CONN_PIPE_H
 
