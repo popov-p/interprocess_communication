@@ -7,46 +7,64 @@
 
 Pipe::Pipe() : sem_(1) {
     if (pipe(pipe_descriptors_) == -1) {
-        std::cerr << "Pipe initialization error: " << strerror(errno) << std::endl;
+        syslog(LOG_ERR, "Pipe initialization error");
+        exit(EXIT_FAILURE);
     }
 }
 
 bool Pipe::read(void *buf, size_t count) {
-
     sem_.wait(TIMEOUT_SECONDS);
-    if (timed_io(pipe_descriptors_[PipeEnd::READ_END], buf, count, TIMEOUT_SECONDS, OperationType::Read)) {
-        //std::cout << "Read successful" << std::endl;
-        sem_.post();
-        return true;
+    if (timer(pipe_descriptors_[PipeEnd::READ_END],TIMEOUT_SECONDS, OperationType::Read)) {
+        ssize_t bytes_processed = ::read(pipe_descriptors_[PipeEnd::READ_END], buf, count);
+        if (bytes_processed == -1) {
+            syslog(LOG_ERR, "Pipe read error");
+            sem_.post();
+            return false;
+        }
+        else if (*(static_cast<int*>(buf)) == ConnStatus::INACCESSIBLE) {
+            syslog(LOG_ERR, "Pipe connection internally closed");
+            return false;            
+        } else {
+            syslog(LOG_INFO, "Pipe read: ok");
+            sem_.post();
+            return true;
+        }
     } else {
-        std::cerr << "Read operation failed or timed out" << std::endl;
         sem_.post();
         return false;
-        //exit(EXIT_FAILURE);
     }
-    //sem_.post();
-    //return true;
+
 }
 
 bool Pipe::write(void *buf, size_t count) {
     sem_.wait(TIMEOUT_SECONDS);
-    if (timed_io(pipe_descriptors_[PipeEnd::WRITE_END], buf, count, TIMEOUT_SECONDS, OperationType::Write)) {
-        //std::cout << "Write successful" << std::endl;
-        sem_.post();
-        return true;
+    if (timer(pipe_descriptors_[PipeEnd::WRITE_END],TIMEOUT_SECONDS, OperationType::Write)) {
+        ssize_t bytes_processed = ::write(pipe_descriptors_[PipeEnd::WRITE_END], buf, count);
+        if (bytes_processed == -1) {
+            syslog(LOG_ERR, "Pipe write error");
+            sem_.post();
+            return false;
+        }
+        else if (*(static_cast<int*>(buf)) == ConnStatus::INACCESSIBLE) {
+            syslog(LOG_ERR, "Pipe connection internally closed");
+            sem_.post();
+            return false;            
+        }
+        else {
+            syslog(LOG_INFO, "Pipe write: ok");
+            sem_.post();
+            return true;
+        }
     } else {
-        std::cerr << "Write operation failed or timed out" << std::endl;
         sem_.post();
         return false;
-        //exit(EXIT_FAILURE);
     }
-    //sem_.post();
-    //return true;
 };
 
 Pipe::~Pipe() {
-    std::cerr<< "destructor pipe called" << std::endl;
+    syslog(LOG_INFO, "Pipe destructor called");
     sem_.~TimedSemaphore();
     close(pipe_descriptors_[READ_END]);
     close(pipe_descriptors_[WRITE_END]);
+    closelog();
 }

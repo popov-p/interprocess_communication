@@ -5,8 +5,7 @@
 #define MMAP_H
 class Mmap : public Conn {
     public:
-    Mmap(size_t type_size);
-    Mmap(bool is_parent){};
+    Mmap(size_t mem_size);
     bool read(void *buf, size_t count);
     bool write(void *buf, size_t count);
     ~Mmap();

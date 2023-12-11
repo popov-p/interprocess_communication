@@ -17,7 +17,7 @@ class Host {
     Host& operator=(Host&&) = delete;
 private:
     Host() {
-        //openlog("interprocess_communication", LOG_PID, LOG_USER);
+        openlog("interprocess_communication", LOG_PID, LOG_USER);
     };
     void print_round_log(const int& current_wolf_num, const int& current_goat_num) {
         std::cout << "Current round: " << round_counter_ << std::endl;
@@ -37,7 +37,7 @@ private:
     void spawn_goat() {
         int status = Status::hidden;
         w_g_connection_->write(&status, sizeof(int));
-        //syslog(LOG_INFO, "initial goat spawned");
+        syslog(LOG_INFO, "initial goat spawned");
     }    
     void manage_game(const pid_t& pid) {
         switch (pid) {
@@ -61,7 +61,6 @@ private:
                         //closelog();
                         exit(EXIT_FAILURE);
                     }
-                    //g_w_connection_->read(&current_goat_num, sizeof(int));
                     if ((dead_times_ == 0) && (abs(current_wolf_num - current_goat_num)<= 50)) {
                         int status = Status::hidden;
                         if(!w_g_connection_->write(&status, sizeof(int))) {
@@ -71,10 +70,10 @@ private:
                     }
                     else if ((dead_times_ == 1) && (abs(current_wolf_num - current_goat_num) <= 30)) {
                         int status = Status::hidden;
-                        if(!w_g_connection_->write(&status, sizeof(int))){
+                        if(!w_g_connection_->write(&status, sizeof(int)))/*reincarnation*/{
                             //closelog();
                             exit(EXIT_FAILURE);
-                        } //reincarnation
+                        }
                         dead_times_--;
                     }
                     else {
@@ -87,7 +86,7 @@ private:
                         if(dead_times_ == 2) {
                             print_round_log(current_wolf_num, current_goat_num);
                             block_conniection();
-                            //syslog(LOG_INFO, "game finished");
+                            syslog(LOG_INFO, "game finished");
                             //closelog();
                             exit(EXIT_SUCCESS);
                         }
@@ -109,7 +108,6 @@ private:
                         //closelog();
                         exit(EXIT_FAILURE);
                     }
-                    
                     std::this_thread::sleep_for(std::chrono::seconds(SLEEP_BETWEEN_ROUNDS));
                 }
         }
@@ -124,7 +122,8 @@ private:
             g_w_connection_ = std::make_unique<Pipe>();
         }
         else {
-            //call shm consructor here
+            w_g_connection_ = std::make_shared<Shm>(sizeof(int));
+            g_w_connection_ = w_g_connection_;
         }
     }
     
@@ -135,7 +134,7 @@ private:
     bool keyboard_input_ = false;
     //signals
     static void h_sigterm_(int sig) {
-        std::cout << "SIGTERM RECEIVED" << std::endl;
+        syslog(LOG_INFO, "Sigterm received");
         Host::get_instance().block_conniection();
 	    exit(EXIT_FAILURE);
     }
@@ -143,7 +142,7 @@ private:
         int st = ConnStatus::INACCESSIBLE;
         w_g_connection_->write(&st, sizeof(int));
         g_w_connection_->write(&st, sizeof(int));
-        std::cout << "inaccessible status set" << std::endl;
+        syslog(LOG_INFO, "Inaccessible status set");
     }
 public:
     void set_keyboard_input_flag(bool flag) {

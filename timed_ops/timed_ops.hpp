@@ -19,5 +19,5 @@ private:
     sem_t semaphore_;
 };
 
-bool timed_io(int fd, void *buf, size_t count, int timeout_seconds, OperationType type); //for pipe
+bool timer(int fd, int timeout_seconds, OperationType type);
 #endif
